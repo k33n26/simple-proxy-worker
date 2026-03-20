@@ -4,27 +4,22 @@ export default {
     const target = url.searchParams.get("url")
 
     if (!target) {
-      return new Response("url parametresi gerekli", { status: 400 })
+      return new Response("URL gerekli", { status: 400 })
     }
 
-    // Header spoof
-    const headers = new Headers()
-    headers.set("User-Agent", "Mozilla/5.0")
-    headers.set("Accept-Language", "en-US,en;q=0.9")
-
-    const response = await fetch(target, {
-      method: "GET",
-      headers: headers,
-      redirect: "follow"
+    const res = await fetch(target, {
+      headers: {
+        "User-Agent": "Mozilla/5.0"
+      }
     })
 
-    const contentType = response.headers.get("content-type") || ""
+    const contentType = res.headers.get("content-type") || ""
 
-    // m3u8 playlist düzenleme
+    // m3u8 playlist düzenle
     if (contentType.includes("mpegurl")) {
-      let text = await response.text()
+      let text = await res.text()
 
-      text = text.replace(/https?:\/\/[^\n]+/g, (match) => {
+      text = text.replace(/https?:\/\/[^\s]+/g, (match) => {
         return request.url.split("?")[0] + "?url=" + encodeURIComponent(match)
       })
 
@@ -36,11 +31,13 @@ export default {
       })
     }
 
-    return new Response(response.body, {
+    // normal response (video segment dahil)
+    return new Response(res.body, {
+      status: res.status,
       headers: {
+        "Content-Type": contentType,
         "Access-Control-Allow-Origin": "*"
       }
     })
   }
 }
-// deploy test
